@@ -22,4 +22,4 @@ print(f"Initial value on process {MPI.COMM_WORLD.rank}: \n{u.vector()[:]}\n")
 
 # Projection CG-1 to DG-0
 proj = project(sum(u), D)
-print(f"Projection psi value on process {MPI.COMM_WORLD.rank}: \n{proj.vector()[:]}\n")
+print(f"Projection value on process {MPI.COMM_WORLD.rank}: \n{proj.vector()[:]}\n")
