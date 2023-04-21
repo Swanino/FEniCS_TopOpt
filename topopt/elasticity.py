@@ -7,17 +7,6 @@ from petsc4py import PETSc
 from matplotlib import pyplot as plt
 from util import *
 
-# OPTIMIZATION PARAMETERS -------------------------------------------------
-class OptimPars:
-    def __init__(self, pen=3., rmin=3., ft=1, max_iter=100, volfrac=0.5)->None:
-        self.pen = pen
-        self.rmin = rmin
-        self.ft = ft
-        self.max_iter = max_iter
-        self.volfrac = volfrac
-    
-    def __str__(self) -> str:
-        return f"OptimPars(pen={self.pen}, rmin={self.rmin}, ft={self.ft}, max_iter={self.max_iter}, volfrac={self.volfrac})"
 
 # LINEAR ELASTICITY PROBLEM -------------------------------------------------
 class ElasticPars:
