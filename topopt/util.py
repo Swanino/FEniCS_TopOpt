@@ -25,3 +25,10 @@ def project_func(dfx_func, func_space):
     project_prob = fem.petsc.LinearProblem(a, l, [])
     result_sol = project_prob.solve()
     return result_sol
+
+# PRINT MESH TO XDMF FILE ---------------------------------
+def print_mesh(mesh, filename:str="output/density.xdmf") -> str:
+    with io.XDMFFile(MPI.COMM_WORLD, filename, "w") as xdmf:
+        xdmf.write_mesh(mesh)
+    return filename
+
