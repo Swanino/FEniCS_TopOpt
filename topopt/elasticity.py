@@ -29,23 +29,13 @@ class Elasticity:
     '''
     def __init__(self, elpars: ElasticPars)->None:
         # mesh generation --------------------------------
-        self.msh = mesh.create_box(MPI.COOM_WORLD, [np.zeros(3), [elpars.nelx, elpars.nely, elpars.nelz]], [elpars.nelx, elpars.nely, elpars.nelz], cell_type=mesh.CellType.hexahedron, ghost_mode=mesh.GhostMode.shared_facet)
+        self.msh = mesh.create_box(MPI.COMM_WORLD, [np.zeros(3), [elpars.nelx, elpars.nely, elpars.nelz]], [elpars.nelx, elpars.nely, elpars.nelz], cell_type=mesh.CellType.hexahedron, ghost_mode=mesh.GhostMode.shared_facet)
         msh = self.msh # alias
 
         # function spaces ----------------------------
-        V = fem.FunctionSpace(mesh, ("CG", 1)) # isoparametric basis function
-        u = fem.Function(V)                    # displacement
-        v = fem.TestFunction(V)                # test function
-
         U1 = fem.VectorFunctionSpace(msh, ("CG", 1)) # displacement basiss
-        C1 = fem.FunctionSpace(msh, ("CG", 1)) # isoparametric basis function
-        u, v = ufl.TrialFunction(U1), ufl.TestFunction(U1)
-        u_sol, density_old, density = fem.Function(U1), fem.Function(D0), fem.Function(D0)
-
-
-        density.x.array[:] = volfrac
-
-
+        u, v = ufl.TrialFunction(U1), ufl.TestFunction(U1) # note that this is ufl
+        u_sol = fem.Function(U1) 
 
         # define support ---------------------------------
         print("currently supports left clamp problem only")
@@ -55,9 +45,11 @@ class Elasticity:
         bc_facets = mesh.locate_entities_boundary(msh, f_dim, left_clamp) # boundary facets
         u_zero = np.array([0.0, 0.0, 0.0], dtype=PETSc.ScalarType) # predefined displacement
         bc_l = fem.dirichletbc(u_zero, fem.locate_dofs_topological(U1, f_dim, bc_facets), U1)
-        bcs = [bc_l]
+        self.bcs = [bc_l]
+
         # define load ---------------------------------
-        load_points = [(1, lambda x: np.logical_and(x[0] == nelx, x[1] <= 2))]
+        print("currently supports point load only")
+        load_points = [(1, lambda x: np.logical_and(x[0] == elpars.nelx, x[1] <= 2))]
         facet_indices, facet_markers = [], []
         f_dim = msh.topology.dim - 1
         for (marker, locator) in load_points:
@@ -68,10 +60,19 @@ class Elasticity:
         facet_markers = np.array(np.hstack(facet_markers), dtype=np.int32)
         sorted_facets = np.argsort(facet_indices)
         facet_tag = mesh.meshtags(msh, f_dim, facet_indices[sorted_facets], facet_markers[sorted_facets])
-        ds = ufl.Measure("ds", domain=msh, subdomain_data=facet_tag)
-        f = ufl.dot(v, fem.Constant(msh, (0.0, -1.0, 0.0))) * ds(1)
+        ds = ufl.Measure("ds", domain=msh, subdomain_data=facet_tag) # measure for facet (surface)
+        self.f = ufl.dot(v, fem.Constant(msh, (0.0, -1.0, 0.0))) * ds(1)
 
-        return mesh, bc
+    '''
+        setup variational problem (linear elasticity)
+    '''
+    def setup_problem(self, density:fem.function.Function, penal:np.float64=3.0) -> None:
+        ## TODO: implement this function
+        k = ufl.inner(density**penal * sigma(u), ufl.grad(v)) * ufl.dx
+        problem = fem.petsc.LinearProblem(k, f, bcs=bcs)
+        pass
+
+
 
     '''
         forward_analysis: forward finite element analysis
