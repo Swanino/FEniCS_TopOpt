@@ -39,10 +39,8 @@ class Elasticity:
 
         U1 = fem.VectorFunctionSpace(msh, ("CG", 1)) # displacement basiss
         C1 = fem.FunctionSpace(msh, ("CG", 1)) # isoparametric basis function
-        D0 = fem.FunctionSpace(msh, ("DG", 0)) # element-wise constant function space
         u, v = ufl.TrialFunction(U1), ufl.TestFunction(U1)
         u_sol, density_old, density = fem.Function(U1), fem.Function(D0), fem.Function(D0)
-        den_node, den_sens = fem.Function(C1), fem.Function(C1)
 
 
         density.x.array[:] = volfrac

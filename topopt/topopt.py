@@ -29,5 +29,6 @@ class TopOpt:
         rmin = np.divide(np.divide(opt.rmin, 2), np.sqrt(3))
 
         # initial density
-
-
+        C1 = fem.FunctionSpace(msh, ("CG", 1)) # nodal design varia
+        D0 = fem.FunctionSpace(msh, ("DG", 0)) # element-wise constant function space
+        den_node, den_sens = fem.Function(C1), fem.Function(C1)
