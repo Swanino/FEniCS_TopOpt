@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 from util import *
 
 
-# LINEAR ELASTICITY PROBLEM -------------------------------------------------
+# LINEAR ELASTICITY PROBLEM -------------------------------------------------``
 class ElasticPars:
     def __init__(self, dim = 3, nel = (32, 32, 32), lmd=0.6, mu=0.4) -> None:
         self.dim = dim
@@ -40,7 +40,7 @@ class Elasticity:
     inputs
         elpars: ElasticPars
     '''
-    def __init__(self, elpars: ElasticPars)->None:
+    def __init__(self, elpars: ElasticPars, is_2D:bool=True)->None:
         # mesh generation --------------------------------
         self.dim = elpars.dim
         
