@@ -132,4 +132,8 @@ if __name__ == "__main__":
     # test
     elpars = ElasticPars()
     el = Elasticity(elpars)
+    el.set_boundary_condition()
+    density = fem.Function(el.U1)
+    penal = 3.0
+    el.setup_problem(density=density, penal=penal)
     el.forward_analysis(elpars)
