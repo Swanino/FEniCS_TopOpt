@@ -103,12 +103,46 @@ class Elasticity:
         psi = lambda _u: self.elpars.lmd / 2 * (ufl.tr(ufl.sym(ufl.grad(_u))) ** 2) + self.elpars.mu * ufl.tr(ufl.sym(ufl.grad(_u)) * ufl.sym(ufl.grad(_u)))
 
         k = ufl.inner(density**penal * sigma(self.u), ufl.grad(self.v)) * ufl.dx
+        self.k = k
         self.problem = fem.petsc.LinearProblem(k, self.f, bcs=self.bcs, petsc_options=petsc_options)
         
     def solve_problem(self):
         # Should support any PETSC solver
         # However, not tested yet.
         self.u_sol = self.problem.solve() 
+
+    def set_mg_solvers(self):
+        # ref: https://github.com/topopt/TopOpt_in_PETSc
+        '''
+        special setup is required for geometric multigrid preconditioner (algibraic multigrid is slow...)
+        : overrides self.problem
+        '''
+
+        # setup solver parameters
+        # The fine grid solver settings
+        rtol         = 1.0e-5
+        atol         = 1.0e-50
+        dtol         = 1.0e5
+        restart      = 100
+        maxitsGlobal = 200
+
+        # Coarsegrid solver
+        coarse_rtol    = 1.0e-8
+        coarse_atol    = 1.0e-50
+        coarse_dtol    = 1e5
+        coarse_maxits  = 30
+        coarse_restart = 30
+
+        '''Number of smoothening iterations per up/down smooth_sweeps'''
+        smooth_sweeps = 4
+        mg_solver = PETSc.KSP().create(self.msh.comm)
+        mg_solver.setOperators(self.problem.A)
+        mg_solver.setType("pgmres")
+
+
+
+
+        pass
 
     '''
         forward_analysis: forward finite element analysis
