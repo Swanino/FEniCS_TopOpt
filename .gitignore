@@ -1,0 +1,15 @@
+# ignore these functions 
+
+*.pyc
+*/__pycache__/*
+
+# figures
+*.png
+*.jpg
+
+# ignore the data
+*.csv
+*.xlsx
+
+# output
+**/output/**
