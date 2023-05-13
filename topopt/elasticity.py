@@ -10,12 +10,12 @@ from util import *
 
 # LINEAR ELASTICITY PROBLEM -------------------------------------------------``
 class ElasticPars:
-    def __init__(self, dim = 3, nel = (32, 32, 32), lmd=0.6, mu=0.4) -> None:
-        self.dim = dim
-        if dim == 2:    
+    def __init__(self, nel = (32, 32, 32), lmd=0.6, mu=0.4) -> None:
+        self.dim = len(nel)
+        if self.dim == 2:    
             self.nelx, self.nely = nel
             self.nelz = 1
-        elif dim == 3:
+        elif self.dim == 3:
             self.nelx, self.nely, self.nelz = nel
         # material parameters 
         self.lmd = lmd # lambda 
@@ -31,7 +31,7 @@ class ElasticPars:
             self.nu = self.lmd / (self.lmd + 2.*self.mu)
 
     def __str__(self) -> str:
-        return f"ElasticPars(nelx={self.nelx}, nely={self.nely}, nelz={self.nelz}, lmd = {self.lmd}, mu = {self.mu}, E={self.E}, mu={self.mu})"
+        return f"dim = {self.dim}, ElasticPars(nelx={self.nelx}, nely={self.nely}, nelz={self.nelz}, lmd = {self.lmd}, mu = {self.mu}, E={self.E}, mu={self.mu})"
     
 class Elasticity:
     '''
@@ -40,15 +40,13 @@ class Elasticity:
     inputs
         elpars: ElasticPars
     '''
-    def __init__(self, elpars: ElasticPars, is_2D:bool=True, 
-                 petsc_options={"ksp_type": "preonly","pc_type": "lu","pc_factor_mat_solver_type": "mumps"})->None:
+    def __init__(self, elpars: ElasticPars, is_2D:bool=True)->None:
         # mesh generation --------------------------------
         self.elpars = elpars
-        self.petsc_options = petsc_options
         self.dim = elpars.dim
         
         if self.dim == 2:
-            self.msh = mesh.create_box(MPI.COMM_WORLD, (np.zeros(2), [elpars.nelx, elpars.nely]), [elpars.nelx, elpars.nely], cell_type=mesh.CellType.quadrilateral, ghost_mode=mesh.GhostMode.shared_facet)
+            self.msh = mesh.create_rectangle(MPI.COMM_WORLD, [np.zeros(2), [elpars.nelx, elpars.nely]], [elpars.nelx, elpars.nely], cell_type=mesh.CellType.quadrilateral, ghost_mode=mesh.GhostMode.shared_facet)
         elif self.dim == 3:
             self.msh = mesh.create_box(MPI.COMM_WORLD, [np.zeros(3), [elpars.nelx, elpars.nely, elpars.nelz]], [elpars.nelx, elpars.nely, elpars.nelz], cell_type=mesh.CellType.hexahedron, ghost_mode=mesh.GhostMode.shared_facet)
         msh = self.msh 
@@ -100,12 +98,12 @@ class Elasticity:
     '''
         setup variational problem (linear elasticity)
     '''
-    def setup_problem(self, density:fem.function.Function, penal:np.float64=3.0) -> None:
+    def setup_problem(self, density:fem.function.Function, penal:np.float64=3.0, petsc_options={"ksp_type": "preonly","pc_type": "lu","pc_factor_mat_solver_type": "mumps"}) -> None:
         sigma = lambda _u: 2.0 * self.elpars.mu * ufl.sym(ufl.grad(_u)) + self.elpars.lmd * ufl.tr(ufl.sym(ufl.grad(_u))) * ufl.Identity(len(_u))
         psi = lambda _u: self.elpars.lmd / 2 * (ufl.tr(ufl.sym(ufl.grad(_u))) ** 2) + self.elpars.mu * ufl.tr(ufl.sym(ufl.grad(_u)) * ufl.sym(ufl.grad(_u)))
 
         k = ufl.inner(density**penal * sigma(self.u), ufl.grad(self.v)) * ufl.dx
-        self.problem = fem.petsc.LinearProblem(k, self.f, bcs=self.bcs, petsc_options=self.petsc_options)
+        self.problem = fem.petsc.LinearProblem(k, self.f, bcs=self.bcs, petsc_options=petsc_options)
         
     def solve_problem(self):
         # Should support any PETSC solver
@@ -129,6 +127,8 @@ class Elasticity:
             Path(foldername).mkdir(parents=True, exist_ok=True)
             fname = print_mesh(mesh)
             print(f"mesh printed to {fname}")
+
+    
 
 
 if __name__ == "__main__":
