@@ -17,7 +17,7 @@ def project_func(dfx_func, func_space):
 # SET START TIME ---------------------------------
 start = time.time()
 # A 55 LINE TOPOLOGY OPTIMIZATION CODE ---------------------------------
-def main(nelx, nely, nelz, volfrac, penal, rmin):
+def main(nelx=10, nely=10, nelz=10, volfrac=0.5, penal=3.0, rmin=1.2):
     # FUNCTION DECLARATION ---------------------------------
     sigma = lambda _u: 2.0 * mu * ufl.sym(ufl.grad(_u)) + lmd * ufl.tr(ufl.sym(ufl.grad(_u))) * ufl.Identity(len(_u))
     psi = lambda _u: lmd / 2 * (ufl.tr(ufl.sym(ufl.grad(_u))) ** 2) + mu * ufl.tr(ufl.sym(ufl.grad(_u)) * ufl.sym(ufl.grad(_u)))
@@ -105,3 +105,6 @@ def main(nelx, nely, nelz, volfrac, penal, rmin):
     end = time.time()
     print("RUNNING Time:", end - start, "sec")
     plt.show()
+
+if __name__ == "__main__":
+    main()

@@ -10,3 +10,6 @@
 # ignore the data
 *.csv
 *.xlsx
+
+# output
+**/output/**

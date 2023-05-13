@@ -31,7 +31,7 @@ class ElasticPars:
             self.nu = self.lmd / (self.lmd + 2.*self.mu)
 
     def __str__(self) -> str:
-        return f"ElasticPars(nelx={self.nelx}, nely={self.nely}, nelz={self.nelz}, E={self.E}, mu={self.mu})"
+        return f"ElasticPars(nelx={self.nelx}, nely={self.nely}, nelz={self.nelz}, lmd = {self.lmd}, mu = {self.mu}, E={self.E}, mu={self.mu})"
     
 class Elasticity:
     '''
@@ -40,8 +40,11 @@ class Elasticity:
     inputs
         elpars: ElasticPars
     '''
-    def __init__(self, elpars: ElasticPars, is_2D:bool=True)->None:
+    def __init__(self, elpars: ElasticPars, is_2D:bool=True, 
+                 petsc_options={"ksp_type": "preonly","pc_type": "lu","pc_factor_mat_solver_type": "mumps"})->None:
         # mesh generation --------------------------------
+        self.elpars = elpars
+        self.petsc_options = petsc_options
         self.dim = elpars.dim
         
         if self.dim == 2:
@@ -49,10 +52,10 @@ class Elasticity:
         elif self.dim == 3:
             self.msh = mesh.create_box(MPI.COMM_WORLD, [np.zeros(3), [elpars.nelx, elpars.nely, elpars.nelz]], [elpars.nelx, elpars.nely, elpars.nelz], cell_type=mesh.CellType.hexahedron, ghost_mode=mesh.GhostMode.shared_facet)
         msh = self.msh 
-        self.elpars = elpars
 
         # function spaces ----------------------------
         self.U1 = fem.VectorFunctionSpace(msh, ("CG", 1)) # displacement basiss
+        self.D0 = fem.FunctionSpace(msh, ("DG", 0)) # density
         self.u, self.v = ufl.TrialFunction(self.U1), ufl.TestFunction(self.U1) # note that this is ufl
         self.u_sol = fem.Function(self.U1) 
 
@@ -98,11 +101,11 @@ class Elasticity:
         setup variational problem (linear elasticity)
     '''
     def setup_problem(self, density:fem.function.Function, penal:np.float64=3.0) -> None:
-        sigma = lambda _u: 2.0 * self.mu * ufl.sym(ufl.grad(_u)) + self.lmd * ufl.tr(ufl.sym(ufl.grad(_u))) * ufl.Identity(len(_u))
-        psi = lambda _u: self.lmd / 2 * (ufl.tr(ufl.sym(ufl.grad(_u))) ** 2) + self.mu * ufl.tr(ufl.sym(ufl.grad(_u)) * ufl.sym(ufl.grad(_u)))
+        sigma = lambda _u: 2.0 * self.elpars.mu * ufl.sym(ufl.grad(_u)) + self.elpars.lmd * ufl.tr(ufl.sym(ufl.grad(_u))) * ufl.Identity(len(_u))
+        psi = lambda _u: self.elpars.lmd / 2 * (ufl.tr(ufl.sym(ufl.grad(_u))) ** 2) + self.elpars.mu * ufl.tr(ufl.sym(ufl.grad(_u)) * ufl.sym(ufl.grad(_u)))
 
         k = ufl.inner(density**penal * sigma(self.u), ufl.grad(self.v)) * ufl.dx
-        self.problem = fem.petsc.LinearProblem(k, self.f, bcs=self.bcs)
+        self.problem = fem.petsc.LinearProblem(k, self.f, bcs=self.bcs, petsc_options=self.petsc_options)
         
     def solve_problem(self):
         # Should support any PETSC solver
@@ -133,7 +136,8 @@ if __name__ == "__main__":
     elpars = ElasticPars()
     el = Elasticity(elpars)
     el.set_boundary_condition()
-    density = fem.Function(el.U1)
+    density = fem.Function(el.D0) # if density \in C1, power is not defined
+    density.x.array[:] = 1.0
     penal = 3.0
     el.setup_problem(density=density, penal=penal)
-    el.forward_analysis(elpars)
+    el.solve_problem()
