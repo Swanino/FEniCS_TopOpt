@@ -49,7 +49,7 @@ class TopOpt:
             exit()
 
         return density_new
-    
+
 
         
 

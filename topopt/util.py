@@ -17,6 +17,11 @@ def helm_filter(rho_n, r_min):
     return rho
 
 # DOLFINX PROJECTION FUNCTION ---------------------------------
+'''
+input: 
+    dfx_func (dolfinx.function.Function): function to be projected
+    func_space (dolfinx.function.FunctionSpace): function space to project to
+'''
 def project_func(dfx_func, func_space):
     trial_func = ufl.TrialFunction(func_space)
     test_func = ufl.TestFunction(func_space)

@@ -112,6 +112,11 @@ class Elasticity:
         # However, not tested yet.
         self.u_sol = self.problem.solve() 
 
+    def export_to_vtk(self):
+        # export to vtk
+        vtkfile = fem.File("output/displacement.pvd")
+        vtkfile << self.u_sol
+
     '''
         forward_analysis: forward finite element analysis
         inputs
