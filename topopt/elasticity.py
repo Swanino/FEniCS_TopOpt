@@ -7,7 +7,6 @@ from petsc4py import PETSc
 from matplotlib import pyplot as plt
 from util import *
 
-
 # LINEAR ELASTICITY PROBLEM -------------------------------------------------``
 class ElasticPars:
     def __init__(self, dim = 3, nel = (32, 32, 32), lmd=0.6, mu=0.4) -> None:
@@ -40,7 +39,7 @@ class Elasticity:
     inputs
         elpars: ElasticPars
     '''
-    def __init__(self, elpars: ElasticPars, is_2D:bool=True, 
+    def __init__(self, elpars: ElasticPars, 
                  petsc_options={"ksp_type": "preonly","pc_type": "lu","pc_factor_mat_solver_type": "mumps"})->None:
         # mesh generation --------------------------------
         self.elpars = elpars
@@ -146,3 +145,10 @@ if __name__ == "__main__":
     penal = 3.0
     el.setup_problem(density=density, penal=penal)
     el.solve_problem()
+
+
+    msh = el.msh
+    u_sol = el.u_sol
+
+    import mesh_pyvista
+    mesh_pyvista.plot_warped(msh, u_sol, warp_factor=2.0)
