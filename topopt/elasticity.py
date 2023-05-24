@@ -137,7 +137,7 @@ class Elasticity:
 
 if __name__ == "__main__":
     # test
-    elpars = ElasticPars()
+    elpars = ElasticPars(nel=(10,10,10))
     el = Elasticity(elpars)
     el.set_boundary_condition()
     density = fem.Function(el.D0) # if density \in C1, power is not defined
