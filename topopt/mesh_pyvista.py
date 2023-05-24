@@ -33,7 +33,8 @@ def plot_warped(msh, u, warp_factor=2.0):
 
     subplotter = pyvista.Plotter(shape=(1, 1))
     subplotter.subplot(0, 0)
-    subplotter.add_text("Scalar contour field", font_size=14, color="black", position="upper_edge")
+    # subplotter.add_text("Scalar contour field", font_size=14, color="black", position="upper_edge")
     subplotter.add_mesh(warped, show_edges=True, show_scalar_bar=True)
     subplotter.view_xy()
     subplotter.show()
+
