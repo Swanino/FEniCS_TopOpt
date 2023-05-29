@@ -1,7 +1,7 @@
 import numpy as np
 from abc import *
 
-class Material(ABC):
+class MaterialModels(ABC):
     @abstractmethod
     def get_modulus_tensor(self) -> np.ndarray:
         pass
@@ -9,7 +9,7 @@ class Material(ABC):
     def __str__(self) -> str:
         pass
     
-class Material_el_lin_iso(Material):
+class Material_el_lin_iso(MaterialModels):
     def __init__(self, dim:int=2, lmd:float=0.6, mu:float=0.4) -> None:
         self.type = "isotropic linear elastic"
         self.lmd, self.mu = lmd, mu
