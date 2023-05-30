@@ -37,3 +37,9 @@ def print_mesh(mesh, filename:str="output/density.xdmf") -> str:
         xdmf.write_mesh(mesh)
     return filename
 
+# project to Gauss quadrature points
+def project_to_quadpts(dfx_func, quadpts):
+    # project to quad points
+    quadpts_func = fem.Function(quadpts.function_space)
+    quadpts_func.vector.set(dfx_func.compute_point_values(quadpts.points))
+    return quadpts_func
