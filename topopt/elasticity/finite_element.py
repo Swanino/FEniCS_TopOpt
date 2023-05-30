@@ -10,7 +10,7 @@ sys.path.append("../")
 from topopt.input_files import ProblemDef
 from topopt.input_files.Cantilever import Cantilever2D
 from topopt.elasticity.material import *
-from topopt.elasticity.material import Material_el_lin_iso
+from topopt.elasticity.material import Material_el_lin_iso, MaterialModels
 # from input_files.Cantilever import Cantilever2D
 # from input_files import ProblemDef
 # from .material import *
@@ -98,15 +98,28 @@ class FE_LinMech(FiniteElement):
         self.f = ufl.dot(self.v, self.prob.LC_force) * ds(1) 
 
     def setProblem(self):
-        def epsilon(_u):
-            return ufl.sym(ufl.grad(_u))
-        def sigma(_u, lmd, mu):
-            return 2.0 * mu * epsilon(_u) + lmd * ufl.tr(epsilon(_u)) * ufl.Identity(len(_u))
-        k = ufl.inner(sigma(self.u, self.mat.lmd, self.mat.mu), ufl.grad(self.v)) * ufl.dx
+        k = ufl.inner(self.sigma(self.u, self.mat.lmd, self.mat.mu), ufl.grad(self.v)) * ufl.dx
         petsc_options={"ksp_type": "preonly","pc_type": "lu","pc_factor_mat_solver_type": "mumps"}
         self.FE = fem.petsc.LinearProblem(k, self.f, bcs=self.bcs, petsc_options=petsc_options)
+
+    def epsilon(self, _u):
+        return ufl.sym(ufl.grad(_u))
+    
+    def sigma(self, _u, lmd, mu):
+        return 2.0 * mu * self.epsilon(_u) + lmd * ufl.tr(self.epsilon(_u)) * ufl.Identity(len(_u))
     
 if __name__ == "__main__":
     cant = Cantilever2D()
     mat = Material_el_lin_iso()
     fe = FE_LinMech(cant, mat)
+
+class FE_LinMech_density(FE_LinMech):
+    def __init__(self, prob:ProblemDef, mat: MaterialModels) -> None:
+        super().__init__(prob, mat)
+        self.D0 = fem.FunctionSpace(self.msh, ("DG", 0)) # density
+
+    def setProblem(self, density:fem.Function, penal:float=3.0): # overridden
+        k = ufl.inner(density**penal * self.sigma(self.u, self.mat.lmd, self.mat.mu), ufl.grad(self.v)) * ufl.dx
+        petsc_options={"ksp_type": "preonly","pc_type": "lu","pc_factor_mat_solver_type": "mumps"}
+        self.FE = fem.petsc.LinearProblem(k, self.f, bcs=self.bcs, petsc_options=petsc_options)
+        

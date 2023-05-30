@@ -5,7 +5,7 @@ from mpi4py import MPI
 import time
 import numpy as np
 
-if __name__ == "__main__":
+def fetest():
     t = time.time()
     cant = Cantilever.Cantilever2D(isTest=True)
     mat =  material.Material_el_lin_iso()
@@ -26,3 +26,9 @@ if __name__ == "__main__":
 
     if MPI.COMM_WORLD.rank == 0:
         print(f"Time taken: {time.time()-t}")
+
+def toptest():
+    pass
+
+if __name__ == "__main__":
+    fetest()
