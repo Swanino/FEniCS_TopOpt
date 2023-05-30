@@ -1,0 +1,41 @@
+<html>
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+      <div class="mermaid">
+    
+        classDiagram
+          class ElasticPars {
+            E : float
+            dim : int
+            lmd : float
+            mu : float
+            nelx : int
+            nely : int
+            nelz : int
+            nu : float
+            lame_to_Ev()
+          }
+          class Elasticity {
+            D0
+            U1
+            bcs : list
+            dim
+            elpars
+            f
+            msh
+            petsc_options : dict
+            problem
+            u
+            u_sol
+            v
+            export_to_vtk()
+            forward_analysis(elpars: ElasticPars, isprint: bool, foldername: str)
+            set_boundary_condition()
+            setup_problem(density: fem.function.Function, penal: np.float64) None
+            solve_problem()
+          }
+          ElasticPars --* Elasticity : elpars
+  
+       </div>
+  </body>
+</html>

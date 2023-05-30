@@ -47,7 +47,7 @@ class Elasticity:
         self.dim = elpars.dim
         
         if self.dim == 2:
-            self.msh = mesh.create_box(MPI.COMM_WORLD, (np.zeros(2), [elpars.nelx, elpars.nely]), [elpars.nelx, elpars.nely], cell_type=mesh.CellType.quadrilateral, ghost_mode=mesh.GhostMode.shared_facet)
+            self.msh = mesh.create_rectangle(MPI.COMM_WORLD, (np.zeros(2), [elpars.nelx, elpars.nely]), [elpars.nelx, elpars.nely], cell_type=mesh.CellType.quadrilateral, ghost_mode=mesh.GhostMode.shared_facet)
         elif self.dim == 3:
             self.msh = mesh.create_box(MPI.COMM_WORLD, [np.zeros(3), [elpars.nelx, elpars.nely, elpars.nelz]], [elpars.nelx, elpars.nely, elpars.nelz], cell_type=mesh.CellType.hexahedron, ghost_mode=mesh.GhostMode.shared_facet)
         msh = self.msh 
@@ -71,8 +71,11 @@ class Elasticity:
             u_zero = np.array([0., 0.], dtype=PETSc.ScalarType) # predefined displacement
         elif self.dim == 3:
             u_zero = np.array([0.0, 0.0, 0.0], dtype=PETSc.ScalarType) # predefined displacement
+        print(fem.locate_dofs_topological(self.U1, f_dim, bc_facets))
         bc_l = fem.dirichletbc(u_zero, fem.locate_dofs_topological(self.U1, f_dim, bc_facets), self.U1)
         self.bcs = [bc_l]
+        print(bc_l.dof_indices())
+
 
         # define load ---------------------------------
         print("currently supports point load only")
@@ -90,6 +93,11 @@ class Elasticity:
         facet_markers = np.array(np.hstack(facet_markers), dtype=np.int32)
         sorted_facets = np.argsort(facet_indices)
         facet_tag = mesh.meshtags(self.msh, f_dim, facet_indices[sorted_facets], facet_markers[sorted_facets])
+        print(load_points)
+        print(facet_indices)
+        print(facet_markers)
+        print(sorted_facets)
+
         ds = ufl.Measure("ds", domain=self.msh, subdomain_data=facet_tag) # measure for facet (surface)
         if self.dim == 2:
             self.f = ufl.dot(self.v, fem.Constant(self.msh, (0.0, -1.0))) * ds(1)
@@ -105,11 +113,32 @@ class Elasticity:
 
         k = ufl.inner(density**penal * sigma(self.u), ufl.grad(self.v)) * ufl.dx
         self.problem = fem.petsc.LinearProblem(k, self.f, bcs=self.bcs, petsc_options=self.petsc_options)
+        # print(self.f)
         
+        # viewer = PETSc.Viewer()
+        # self.problem._A.assemble() # SHOULD NOT BE USED!!! 
+        # self.problem._A.view(viewer.ASCII("./savem/testK0.vtu"))
+        # self.problem.A.view(viewer.ASCII("./savem/testK.vtu"))
+        # viewer.destroy()
+
     def solve_problem(self):
         # Should support any PETSC solver
         # However, not tested yet.
+        print(self.problem._A.isAssembled())
+
         self.u_sol = self.problem.solve() 
+        viewer = PETSc.Viewer()
+        print(self.problem._A.isAssembled())
+        self.problem._A.view(viewer.createASCII("./savem/testK.vtu"))
+        # m = viewer.create(comm=MPI.COMM_WORLD)
+        # m.setType(PETSc.Viewer.Type.EXODUSII)
+        # m.setFileName("./savem/testKm.vtu")
+        # self.problem._A.view(m)
+        # self.problem._A.view(viewer.ASCII("./savem/testK.vtu"))
+        # self.problem.A.view(viewer.createVTK("./savem/testK2.vtu", comm=MPI.COMM_WORLD))
+        m  = viewer.createVTK("./savem/testK2.vtu", comm=MPI.COMM_WORLD)
+        viewer.createVTK("./savem/testK2.vtu").view(self.problem.A)
+        viewer.destroy()
 
     def export_to_vtk(self):
         # export to vtk
@@ -137,7 +166,7 @@ class Elasticity:
 
 if __name__ == "__main__":
     # test
-    elpars = ElasticPars(nel=(10,10,10))
+    elpars = ElasticPars(dim=2, nel=(10,10))
     el = Elasticity(elpars)
     el.set_boundary_condition()
     density = fem.Function(el.D0) # if density \in C1, power is not defined
@@ -145,10 +174,33 @@ if __name__ == "__main__":
     penal = 3.0
     el.setup_problem(density=density, penal=penal)
     el.solve_problem()
+    viewer = PETSc.Viewer(comm=MPI.COMM_WORLD)
+    # viewer(el.problem._A)
+    # viewer(el.problem.b)
+
 
 
     msh = el.msh
     u_sol = el.u_sol
 
-    import mesh_pyvista
-    mesh_pyvista.plot_warped(msh, u_sol, warp_factor=2.0)
+    # import mesh_pyvista
+    # mesh_pyvista.plot_warped(msh, u_sol, warp_factor=2.0)
+
+        # with io.VTXWriter(MPI.COMM_WORLD, "test.bp", u0) as f:
+    #     f.write(0.0)
+    # not working for some reason... ADIOS2 bug?
+
+
+    with io.XDMFFile(MPI.COMM_WORLD, "./save/test.xdmf", "w") as f:
+        f.write_mesh(msh)
+        f.write_function(u_sol)
+
+    viewer = PETSc.Viewer()
+    u_sol.vector.view(viewer.ASCII("./savem/testq.vtu"))
+
+    viewer.destroy()
+
+    # import mesh_pyvista
+    # mesh_pyvista.plot_warped(msh, u_sol, warp_factor=2.0)
+
+    
